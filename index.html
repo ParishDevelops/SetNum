@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Set a number</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+    <style>
+        body {
+            font-family: sans-serif;
+            background-color: lightpink;
+            text-align: center;
+            padding: 20px;
+        }
+        #currentNumber {
+            font-size: 2em;
+        }
+        #loading {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Set a number</h1>
+    <button id="connectButton">Connect MetaMask</button>
+    <div id="walletAddress"></div>
+    
+    <div>
+        <h2 id="currentNumber">Current Number: </h2>
+    </div>
+
+    <input type="number" id="setNumberInput" placeholder="Enter a number" />
+    <button id="setNumberButton">Set Number</button>
+
+    <div id="loading">Loading...</div>
+
+    <script>
+        let provider, signer, contract;
+        const contractAddress = "0xb88Fc34e8F0425C9358A4A4CC551C12bacd74A8f";
+        const contractABI = [
+            {
+                "inputs": [{"internalType": "uint256", "name": "input", "type": "uint256"}],
+                "name": "SetNum",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "num",
+                "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+                "stateMutability": "view",
+                "type": "function"
+            }
+        ];
+
+        document.getElementById('connectButton').onclick = async () => {
+            if (window.ethereum) {
+                provider = new ethers.BrowserProvider(window.ethereum);
+                signer = await provider.getSigner();
+                const address = await signer.getAddress();
+                document.getElementById('walletAddress').innerText = `Connected: ${address}`;
+                contract = new ethers.Contract(contractAddress, contractABI, signer);
+                updateCurrentNumber();
+            } else {
+                alert('Please install MetaMask!');
+            }
+        };
+
+        async function updateCurrentNumber() {
+            const currentNum = await contract.num();
+            document.getElementById('currentNumber').innerText = `Current Number: ${currentNum.toString()}`;
+        }
+
+        document.getElementById('setNumberButton').onclick = async () => {
+            const inputValue = document.getElementById('setNumberInput').value;
+            if (!inputValue) return alert("Please enter a number");
+
+            document.getElementById('loading').style.display = 'block';
+            try {
+                const tx = await contract.SetNum(inputValue);
+                await tx.wait();
+                await updateCurrentNumber();
+            } catch (error) {
+                console.error(error);
+                alert("Transaction failed!");
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        };
+    </script>
+
+</body>
+</html>
